@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+airflow_venv/
+venv/
+env/
+ENV/
+.venv
+
+# Environment Variables
+.env
+*.env
+!.env.example
+
+# Airflow
+airflow/airflow.db
+airflow/airflow-webserver.pid
+airflow/logs/
+airflow/webserver_config.py
+airflow/*.pid
+airflow/*.log
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data files (optional - uncomment if needed)
+# *.csv
+# *.xlsx
+# *.json
+# *.pkl
+
+# Model files (optional - keep models tracked for demo)
+# airflow/models/*.pkl
+# airflow/models/*.txt

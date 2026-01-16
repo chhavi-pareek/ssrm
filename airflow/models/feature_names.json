@@ -1,0 +1,11 @@
+{
+    "features": [
+        "on_time_delivery_rate",
+        "quality_score",
+        "geopolitical_risk_score",
+        "communication_score",
+        "annual_spending_rupees",
+        "industry_segment_enc",
+        "supplier_size_enc"
+    ]
+}

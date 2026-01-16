@@ -1,0 +1,4 @@
+supplier_id,date,on_time_delivery_rate,quality_score,geopolitical_risk_score,communication_score,annual_spending_rupees,total_risk_score,risk_category,industry_segment,supplier_size
+SUP-201,2024-02-01,0.92,87.5,0.31,0.84,25000000,0.42,Medium Risk,Manufacturing,Medium
+SUP-202,2024-02-01,0.78,72.0,0.55,0.69,12000000,0.61,High Risk,Logistics,Small
+SUP-203,2024-02-01,0.96,91.2,0.18,0.91,54000000,0.29,Low Risk,Electronics,Large

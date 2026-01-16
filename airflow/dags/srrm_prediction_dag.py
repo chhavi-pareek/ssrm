@@ -1,0 +1,170 @@
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime
+import os
+import json
+import pandas as pd
+import joblib
+import lightgbm as lgb
+import shap
+from supabase import create_client
+
+# ------------------------------------------------------------------
+# AIRFLOW-CONTRACT SAFE PATHS
+# ------------------------------------------------------------------
+
+AIRFLOW_HOME = os.environ["AIRFLOW_HOME"]
+
+MODEL_DIR = os.path.join(AIRFLOW_HOME, "models")
+DAGS_DIR = os.path.join(AIRFLOW_HOME, "dags")
+
+MODEL_PATH = os.path.join(MODEL_DIR, "lgbm_model.txt")
+PREPROCESSOR_PATH = os.path.join(MODEL_DIR, "preprocessors.pkl")
+FEATURES_PATH = os.path.join(MODEL_DIR, "feature_names.json")
+MODEL_METADATA_PATH = os.path.join(MODEL_DIR, "model_metadata.json")
+
+# Validate files early (fail fast)
+for path in [
+    MODEL_PATH,
+    PREPROCESSOR_PATH,
+    FEATURES_PATH,
+    MODEL_METADATA_PATH,
+]:
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"❌ Required file missing: {path}")
+
+# ------------------------------------------------------------------
+# SUPABASE
+# ------------------------------------------------------------------
+
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# ------------------------------------------------------------------
+# TASKS
+# ------------------------------------------------------------------
+
+def fetch_supplier_data(**context):
+    """
+    Fetch only rows that have not been predicted yet
+    """
+    response = (
+        supabase
+        .table("supplier_risk_master")
+        .select("*")
+        .eq("is_predicted", False)
+        .execute()
+    )
+
+    df = pd.DataFrame(response.data)
+
+    if df.empty:
+        print("✅ No new rows to predict")
+        return
+
+    tmp_path = os.path.join(AIRFLOW_HOME, "tmp_supplier_data.pkl")
+    df.to_pickle(tmp_path)
+
+    context["ti"].xcom_push(key="data_path", value=tmp_path)
+
+
+def preprocess_and_predict(**context):
+    data_path = context["ti"].xcom_pull(key="data_path")
+    if not data_path:
+        print("✅ Nothing to process")
+        return
+
+    df = pd.read_pickle(data_path)
+
+    # ---------------- Load model ----------------
+    model = lgb.Booster(model_file=MODEL_PATH)
+
+    preprocessors = joblib.load(PREPROCESSOR_PATH)
+    label_encoders = preprocessors["label_encoders"]
+
+    with open(FEATURES_PATH) as f:
+        feature_names = json.load(f)["features"]
+
+    # ---------------- Encode categoricals ----------------
+    df["industry_segment_enc"] = label_encoders["industry_segment"].transform(
+        df["industry_segment"]
+    )
+    df["supplier_size_enc"] = label_encoders["supplier_size"].transform(
+        df["supplier_size"]
+    )
+
+    X = df[feature_names]
+
+    # ---------------- Predict ----------------
+    probs = model.predict(X)
+    pred_class_idx = probs.argmax(axis=1)
+
+    risk_encoder = label_encoders["risk_category"]
+    pred_labels = risk_encoder.inverse_transform(pred_class_idx)
+
+    # ---------------- SHAP ----------------
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X)
+
+    n_rows = shap_values[0].shape[0]
+    today = datetime.utcnow().date()
+
+    with open(MODEL_METADATA_PATH) as f:
+        model_version = json.load(f).get("model_version", "v1.0")
+
+    # ---------------- Store results ----------------
+    for pos in range(n_rows):
+        row = df.iloc[pos]
+        class_idx = pred_class_idx[pos]
+
+        supabase.table("risk_prediction_history").insert({
+            "supplier_id": row["supplier_id"],
+            "date": str(row["date"]),
+            "predicted_risk": pred_labels[pos],
+            "prob_high": float(probs[pos][0]),
+            "prob_medium": float(probs[pos][1]),
+            "prob_low": float(probs[pos][2]),
+            "model_version": model_version,
+            "prediction_date": datetime.utcnow().isoformat()
+        }).execute()
+
+        shap_for_class = shap_values[class_idx][pos]
+        shap_payload = dict(zip(feature_names, shap_for_class.tolist()))
+
+        supabase.table("shap_explanations").insert({
+            "supplier_id": row["supplier_id"],
+            "prediction_date": today.isoformat(),
+            "shap_values": shap_payload
+        }).execute()
+
+        supabase.table("supplier_risk_master").update(
+            {"is_predicted": True}
+        ).eq("supplier_id", row["supplier_id"]) \
+         .eq("date", row["date"]) \
+         .execute()
+
+# ------------------------------------------------------------------
+# DAG
+# ------------------------------------------------------------------
+
+with DAG(
+    dag_id="srrm_prediction_dag",
+    start_date=datetime(2024, 1, 1),
+    schedule_interval=None,
+    catchup=False,
+    tags=["srrm", "prediction"]
+) as dag:
+
+    fetch_data = PythonOperator(
+        task_id="fetch_supplier_data",
+        python_callable=fetch_supplier_data
+    )
+
+    predict = PythonOperator(
+        task_id="preprocess_and_predict",
+        python_callable=preprocess_and_predict
+    )
+
+    fetch_data >> predict

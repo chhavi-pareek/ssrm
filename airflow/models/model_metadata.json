@@ -1,0 +1,25 @@
+{
+    "model_type": "LightGBM",
+    "task": "multiclass_classification",
+    "num_classes": 3,
+    "class_names": [
+        "High Risk",
+        "Low Risk",
+        "Medium Risk"
+    ],
+    "feature_names": [
+        "on_time_delivery_rate",
+        "quality_score",
+        "geopolitical_risk_score",
+        "communication_score",
+        "annual_spending_rupees",
+        "industry_segment_enc",
+        "supplier_size_enc"
+    ],
+    "n_features": 7,
+    "training_date": "2025-11-20T19:31:45.290281",
+    "metrics": {
+        "accuracy": 0.967,
+        "f1_score": 0.9669887267208369
+    }
+}
