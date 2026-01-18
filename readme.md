@@ -275,20 +275,17 @@ Process:Start → Create Ticket (External Task) → Send Notification (External 
 **Terminal 4**
 
 ```bash
-cd camunda
 python worker_create_ticket.py
 ```
 **Terminal 5**
 
 ```bash
-cd camunda
 python worker_send_notification.py
 ```
 
 ### 10. Run Frontend
 
 ```bash
-cd frontend
 streamlit run app.py
 ```
 
