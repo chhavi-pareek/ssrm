@@ -15,6 +15,7 @@ import pandas as pd
 import requests
 import os
 import json
+import time
 from datetime import datetime
 from dotenv import load_dotenv
 from supabase import create_client
@@ -126,6 +127,19 @@ def fetch_shap_explanations():
         st.error(f"Error fetching SHAP data: {e}")
         return pd.DataFrame()
 
+
+def fetch_workflow_events():
+    try:
+        response = supabase.table("workflow_events") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .execute()
+        return pd.DataFrame(response.data) if response.data else pd.DataFrame()
+    except Exception as e:
+        st.error(f"Error fetching workflow events: {e}")
+        return pd.DataFrame()
+
+
 def trigger_airflow_dag():
     """Trigger Airflow prediction DAG via REST API"""
     try:
@@ -154,12 +168,13 @@ def validate_csv_columns(df):
 # TAB 1: 📈 OVERVIEW
 # ==============================================================================
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📈 Overview",
     "🏭 Supplier Risk Master",
     "🧠 Predictions",
     "🔍 SHAP Explanations",
-    "📤 Upload & Predict"
+    "📤 Upload & Predict",
+    "🎫 Workflow Events"
 ])
 
 with tab1:
@@ -511,7 +526,7 @@ with tab5:
             st.error(f"Error reading CSV: {e}")
     
     st.divider()
-    
+        
     # Section 2: Trigger Airflow DAG
     st.subheader("2️⃣ Trigger ML Prediction Pipeline")
     st.markdown("""
@@ -586,6 +601,50 @@ with tab5:
                 st.warning(f"⚠️ Airflow API returned status {resp.status_code}")
         except:
             st.error("❌ Airflow API unreachable")
+            
+# ==============================================================================
+# TAB 6: 🎫 WORKFLOW EVENTS (CAMUNDA OUTPUT)
+# ==============================================================================
+
+with tab6:
+    st.header("🎫 Ticket & Notification Events")
+    st.markdown("Shows actions executed by Camunda workers")
+
+    events_df = fetch_workflow_events()
+
+    if not events_df.empty:
+        events_df["created_at"] = pd.to_datetime(events_df["created_at"])
+
+        def format_event(e):
+            if "ticket" in e:
+                return "🎫 Ticket Created"
+            elif "notification" in e:
+                return "📢 Notification Sent"
+            else:
+                return e
+
+        events_df["event_display"] = events_df["event_type"].apply(format_event)
+
+        display_df = events_df[["supplier_id", "event_display", "created_at"]] \
+            .rename(columns={
+                "supplier_id": "Supplier",
+                "event_display": "Event",
+                "created_at": "Time"
+            })
+
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric("🎫 Tickets Created", len(events_df[events_df["event_type"] == "TICKET_CREATED"]))
+
+        with col2:
+            st.metric("📢 Notifications Sent", len(events_df[events_df["event_type"] == "NOTIFICATION_SENT"]))
+
+    else:
+        st.info("No workflow events yet. Run predictions with High Risk supplier.")
+
 
 # ==============================================================================
 # SIDEBAR

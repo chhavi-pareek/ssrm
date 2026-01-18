@@ -24,6 +24,7 @@ airflow/logs/
 airflow/webserver_config.py
 airflow/*.pid
 airflow/*.log
+airflow_runtime/
 
 # Jupyter Notebook
 .ipynb_checkpoints

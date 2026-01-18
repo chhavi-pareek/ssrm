@@ -7,6 +7,7 @@ import pandas as pd
 import joblib
 import lightgbm as lgb
 import shap
+import requests
 from supabase import create_client
 
 # ------------------------------------------------------------------
@@ -129,6 +130,11 @@ def preprocess_and_predict(**context):
             "model_version": model_version,
             "prediction_date": datetime.utcnow().isoformat()
         }).execute()
+        # 🚨 If HIGH risk → trigger Camunda
+	if pred_labels[pos] == "HIGH":
+    		print("🚨 HIGH RISK DETECTED — Triggering Camunda workflow")
+    		trigger_camunda_workflow(str(row["supplier_id"]))
+
 
         shap_for_class = shap_values[class_idx][pos]
         shap_payload = dict(zip(feature_names, shap_for_class.tolist()))
@@ -144,6 +150,25 @@ def preprocess_and_predict(**context):
         ).eq("supplier_id", row["supplier_id"]) \
          .eq("date", row["date"]) \
          .execute()
+         
+def trigger_camunda_workflow(supplier_name):
+    url = "http://localhost:8081/engine-rest/process-definition/key/Process_1cpixyy/start"
+
+    payload = {
+        "variables": {
+            "supplier": {
+                "value": supplier_name,
+                "type": "String"
+            }
+        }
+    }
+
+    try:
+        r = requests.post(url, json=payload, timeout=5)
+        print("🔥 Camunda triggered:", r.status_code, r.text)
+    except Exception as e:
+        print("❌ Failed to trigger Camunda:", e)
+
 
 # ------------------------------------------------------------------
 # DAG

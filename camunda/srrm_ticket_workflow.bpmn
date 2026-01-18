@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0b8fdlf" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.43.1" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="Process_1cpixyy" isExecutable="true" camunda:historyTimeToLive="30">
+    <bpmn:startEvent id="StartEvent_1" name="START">
+      <bpmn:outgoing>Flow_1xsypal</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Activity_03x971v" name="CREATE TICKET" camunda:type="external" camunda:topic="create_ticket">
+      <bpmn:incoming>Flow_1xsypal</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ya1347</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1xsypal" sourceRef="StartEvent_1" targetRef="Activity_03x971v" />
+    <bpmn:serviceTask id="Activity_1a917p3" name="SEND NOTIFICATION" camunda:type="external" camunda:topic="send_notification">
+      <bpmn:incoming>Flow_1ya1347</bpmn:incoming>
+      <bpmn:outgoing>Flow_0c66en4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1ya1347" sourceRef="Activity_03x971v" targetRef="Activity_1a917p3" />
+    <bpmn:endEvent id="Event_1whpq9h">
+      <bpmn:incoming>Flow_0c66en4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0c66en4" sourceRef="Activity_1a917p3" targetRef="Event_1whpq9h" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1cpixyy">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="182" y="92" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="182" y="135" width="36" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03x971v_di" bpmnElement="Activity_03x971v">
+        <dc:Bounds x="290" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1a917p3_di" bpmnElement="Activity_1a917p3">
+        <dc:Bounds x="480" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1whpq9h_di" bpmnElement="Event_1whpq9h">
+        <dc:Bounds x="652" y="92" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1xsypal_di" bpmnElement="Flow_1xsypal">
+        <di:waypoint x="218" y="110" />
+        <di:waypoint x="290" y="110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ya1347_di" bpmnElement="Flow_1ya1347">
+        <di:waypoint x="390" y="120" />
+        <di:waypoint x="480" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0c66en4_di" bpmnElement="Flow_0c66en4">
+        <di:waypoint x="580" y="120" />
+        <di:waypoint x="616" y="120" />
+        <di:waypoint x="616" y="110" />
+        <di:waypoint x="652" y="110" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
