@@ -247,7 +247,7 @@ airflow/models/
 ```
 
 ---
-### 10. Camunda Setup(using docker)
+### 9. Camunda Setup(using docker)
 
 **Terminal 3**
 
@@ -268,6 +268,7 @@ Open in Camunda Modeler and click Deploy to:
 http://localhost:8081/engine-rest
 ```
 Process:Start → Create Ticket (External Task) → Send Notification (External Task) → End
+
 
 **Start External Task Workers**
 
