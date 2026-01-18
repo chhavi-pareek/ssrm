@@ -270,6 +270,7 @@ http://localhost:8081/engine-rest
 Process:Start → Create Ticket (External Task) → Send Notification (External Task) → End
 
 **Start External Task Workers**
+
 **Terminal 4**
 
 ```bash
