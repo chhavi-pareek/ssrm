@@ -50,3 +50,6 @@ airflow_runtime/
 # Model files (optional - keep models tracked for demo)
 # airflow/models/*.pkl
 # airflow/models/*.txt
+
+# Shell scripts
+*.sh

@@ -14,7 +14,7 @@ from supabase import create_client
 # AIRFLOW-CONTRACT SAFE PATHS
 # ------------------------------------------------------------------
 
-AIRFLOW_HOME = os.environ["AIRFLOW_HOME"]
+AIRFLOW_HOME = os.environ.get("AIRFLOW_HOME", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 MODEL_DIR = os.path.join(AIRFLOW_HOME, "models")
 DAGS_DIR = os.path.join(AIRFLOW_HOME, "dags")
@@ -49,13 +49,13 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def fetch_supplier_data(**context):
     """
-    Fetch only rows that have not been predicted yet
+    Fetch only rows that have not been predicted yet (is_predicted = False or NULL)
     """
     response = (
         supabase
         .table("supplier_risk_master")
         .select("*")
-        .eq("is_predicted", False)
+        .or_("is_predicted.eq.false,is_predicted.is.null")
         .execute()
     )
 
@@ -78,6 +78,10 @@ def preprocess_and_predict(**context):
         return
 
     df = pd.read_pickle(data_path)
+    print(f"Processing {len(df)} rows")
+    
+    # Store original dataframe for later use
+    df_original = df.copy()
 
     # ---------------- Load model ----------------
     model = lgb.Booster(model_file=MODEL_PATH)
@@ -97,6 +101,8 @@ def preprocess_and_predict(**context):
     )
 
     X = df[feature_names]
+    
+    print(f"Feature matrix shape: {X.shape}")
 
     # ---------------- Predict ----------------
     probs = model.predict(X)
@@ -109,15 +115,17 @@ def preprocess_and_predict(**context):
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X)
 
-    n_rows = shap_values[0].shape[0]
+    n_rows = len(df_original)
     today = datetime.utcnow().date()
 
     with open(MODEL_METADATA_PATH) as f:
         model_version = json.load(f).get("model_version", "v1.0")
 
+    print(f"Storing results for {n_rows} predictions")
+
     # ---------------- Store results ----------------
     for pos in range(n_rows):
-        row = df.iloc[pos]
+        row = df_original.iloc[pos]
         class_idx = pred_class_idx[pos]
 
         supabase.table("risk_prediction_history").insert({
@@ -130,11 +138,11 @@ def preprocess_and_predict(**context):
             "model_version": model_version,
             "prediction_date": datetime.utcnow().isoformat()
         }).execute()
+        
         # 🚨 If HIGH risk → trigger Camunda
-	if pred_labels[pos] == "HIGH":
-    		print("🚨 HIGH RISK DETECTED — Triggering Camunda workflow")
-    		trigger_camunda_workflow(str(row["supplier_id"]))
-
+        if pred_labels[pos] == "HIGH":
+            print("🚨 HIGH RISK DETECTED — Triggering Camunda workflow")
+            trigger_camunda_workflow(str(row["supplier_id"]))
 
         shap_for_class = shap_values[class_idx][pos]
         shap_payload = dict(zip(feature_names, shap_for_class.tolist()))
@@ -150,6 +158,8 @@ def preprocess_and_predict(**context):
         ).eq("supplier_id", row["supplier_id"]) \
          .eq("date", row["date"]) \
          .execute()
+    
+    print(f"✅ Successfully processed {n_rows} predictions")
          
 def trigger_camunda_workflow(supplier_name):
     url = "http://localhost:8081/engine-rest/process-definition/key/Process_1cpixyy/start"
