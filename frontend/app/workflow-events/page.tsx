@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getWorkflowEvents } from "@/lib/queries";
 
+export const revalidate = 0; // Disable caching for this page
+
 export default async function WorkflowEventsPage() {
   const events = await getWorkflowEvents();
 

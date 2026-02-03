@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRiskMasterFilterOptions, getRiskMasterPage } from "@/lib/queries";
+import { AddSupplierDialog } from "@/components/add-supplier-dialog";
 
 type Search = {
   supplier?: string;
@@ -39,9 +40,12 @@ export default async function SupplierRiskMasterPage({ searchParams }: { searchP
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Suppliers</h1>
-        <p className="text-sm text-muted-foreground">Browse supplier risk master records and export filtered results.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Suppliers</h1>
+          <p className="text-sm text-muted-foreground">Browse supplier risk master records and export filtered results.</p>
+        </div>
+        <AddSupplierDialog />
       </div>
 
       <Card>

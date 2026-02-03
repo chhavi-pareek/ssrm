@@ -114,6 +114,14 @@ def preprocess_and_predict(**context):
     # ---------------- SHAP ----------------
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X)
+    
+    # Debug: Check SHAP values structure
+    print(f"SHAP values type: {type(shap_values)}")
+    if isinstance(shap_values, list):
+        print(f"SHAP values has {len(shap_values)} classes")
+        print(f"Each class has shape: {[sv.shape for sv in shap_values]}")
+    else:
+        print(f"SHAP values shape: {shap_values.shape}")
 
     n_rows = len(df_original)
     today = datetime.utcnow().date()
@@ -140,11 +148,13 @@ def preprocess_and_predict(**context):
         }).execute()
         
         # 🚨 If HIGH risk → trigger Camunda
-        if pred_labels[pos] == "HIGH":
+        if pred_labels[pos] == "High Risk":
             print("🚨 HIGH RISK DETECTED — Triggering Camunda workflow")
             trigger_camunda_workflow(str(row["supplier_id"]))
 
-        shap_for_class = shap_values[class_idx][pos]
+        # SHAP values shape: (n_samples, n_features, n_classes)
+        # Get SHAP values for sample pos, all features, predicted class
+        shap_for_class = shap_values[pos, :, int(class_idx)]
         shap_payload = dict(zip(feature_names, shap_for_class.tolist()))
 
         supabase.table("shap_explanations").insert({

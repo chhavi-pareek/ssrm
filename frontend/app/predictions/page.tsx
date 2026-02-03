@@ -2,6 +2,8 @@ import { RiskBadge } from "@/components/risk-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAllPredictions } from "@/lib/queries";
+import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 
 function pct(v: number | null | undefined) {
   if (typeof v !== "number" || !Number.isFinite(v)) return "—";
@@ -30,9 +32,20 @@ export default async function PredictionsPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">Predictions</h1>
-        <p className="text-muted-foreground/80 mt-1.5">Time-series prediction history with sorting controls.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">Predictions</h1>
+          <p className="text-muted-foreground/80 mt-1.5">Time-series prediction history with sorting controls.</p>
+        </div>
+        <Link 
+          href="https://colab.research.google.com/drive/1UiDOWZ1AANTD83A-gdMxWOAOjduVnAY5?usp=sharing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 h-10 rounded-lg bg-gradient-to-r from-primary to-primary/90 px-5 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all"
+        >
+          View Model
+          <ExternalLink className="w-4 h-4" />
+        </Link>
       </div>
 
       <Card>
